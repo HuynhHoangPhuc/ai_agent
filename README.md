@@ -2,7 +2,7 @@ This project use STDIO to connect between MCP server and MCP client
 
 ## Build
 
-## Enviroment variables
+### Enviroment variables
 
 Create `.env` with Google Gemini API key
 
