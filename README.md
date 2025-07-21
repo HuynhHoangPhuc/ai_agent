@@ -2,6 +2,14 @@ This project use STDIO to connect between MCP server and MCP client
 
 ## Build
 
+## Enviroment variables
+
+Create `.env` with Google Gemini API key
+
+```{text}
+GEMINI_API_KEY="PUT-YOUR-KEY-HERE"
+```
+
 ### With uv
 
 Install [uv](https://github.com/astral-sh/uv)
