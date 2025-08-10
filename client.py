@@ -1,7 +1,7 @@
 import logging
 import os
 
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from google import genai
 from mcp import ClientSession, StdioServerParameters
@@ -87,10 +87,13 @@ async def get():
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    chat = ChatService()
-    while True:
-        data = await websocket.receive_text()
-        if len(data.strip()) != 0:
-            await websocket.send_text(f"Message text was: {data}")
-            result = await chat.sendMessage(data)
-            await websocket.send_text(f"Response was: {result}")
+    try:
+        chat = ChatService()
+        while True:
+            data = await websocket.receive_text()
+            if len(data.strip()) != 0:
+                await websocket.send_text(f"Message text was: {data}")
+                result = await chat.sendMessage(data)
+                await websocket.send_text(f"Response was: {result}")
+    except WebSocketDisconnect:
+        logging.info("Client disconnect")
