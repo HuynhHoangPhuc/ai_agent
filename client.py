@@ -1,61 +1,96 @@
+import logging
 import os
-import asyncio
-import sys
-from dotenv import load_dotenv
+
+from fastapi import FastAPI, WebSocket
+from fastapi.responses import HTMLResponse
+from google import genai
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
-from google import genai
 
-# Load environment variables
-load_dotenv("./.env")
+app = FastAPI()
 
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-chat = client.aio.chats.create(model="gemini-2.5-flash")
+html = """
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Chat</title>
+    </head>
+    <body>
+        <h1>WebSocket Chat</h1>
+        <form action="" onsubmit="sendMessage(event)">
+            <input type="text" id="messageText" autocomplete="off"/>
+            <button>Send</button>
+        </form>
+        <ul id='messages'>
+        </ul>
+        <script>
+            var ws = new WebSocket("ws://localhost:8000/ws");
+            ws.onmessage = function(event) {
+                var messages = document.getElementById('messages')
+                var message = document.createElement('li')
+                var content = document.createTextNode(event.data)
+                message.appendChild(content)
+                messages.appendChild(message)
+            };
+            function sendMessage(event) {
+                var input = document.getElementById("messageText")
+                ws.send(input.value)
+                input.value = ''
+                event.preventDefault()
+            }
+        </script>
+    </body>
+</html>
+"""
 
-# Create server parameters for stdio connection
-server_params = StdioServerParameters(
-    command="python",  # Executable
-    args=["server_test.py"],  # MCP Server
-    env=None,  # Optional environment variables
-)
 
+class ChatService:
+    def __init__(self, model="gemini-2.5-flash") -> None:
+        self.model = model
+        self.client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+        self.chat = self.client.aio.chats.create(model=self.model)
+        self.server_params = StdioServerParameters(
+            command="python",  # Executable
+            args=["server.py"],  # MCP Server
+            env=None,  # Optional environment variables
+        )
 
-async def run():
-    async with stdio_client(server_params) as (read, write):
-        async with ClientSession(read, write) as session:
-            # Initialize the connection between client and server
-            await session.initialize()
-
-            while True:
+    async def sendMessage(self, message: str) -> str:
+        result = ""
+        async with stdio_client(self.server_params) as (read, write):
+            async with ClientSession(read, write) as session:
+                await session.initialize()
                 try:
-                    prompt = input("\nYour query: ").strip()
-                    if prompt.lower() == "quit":
-                        print("Session ended. Goodbye!")
-                        break
-                    response = await chat.send_message_stream(
-                        prompt,
+                    response = await self.chat.send_message_stream(
+                        message,
                         config=genai.types.GenerateContentConfig(
                             temperature=0,
                             tools=[session],
                         ),
                     )
+
                     async for chunk in response:
-                        for i in chunk.candidates:
-                            for part in i.content.parts:
+                        for candidate in chunk.candidates:
+                            for part in candidate.content.parts:
                                 if part.text:
-                                    print(part.text, end="", flush=True)
-                except KeyboardInterrupt:
-                    print("\nSession interrupted. Goodbye!")
-                    break
+                                    result += part.text
                 except Exception as e:
-                    print(f"\nAn error occurred: {str(e)}")
+                    logging.error(f"Error during chat: {str(e)}")
+        return result
 
 
-# Start the asyncio event loop and run the main function
-if __name__ == "__main__":
-    try:
-        asyncio.run(run())
-    except KeyboardInterrupt:
-        print("Session interrupted. Goodbye!")
-    finally:
-        sys.stderr = open(os.devnull, "w")
+@app.get("/")
+async def get():
+    return HTMLResponse(html)
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    chat = ChatService()
+    while True:
+        data = await websocket.receive_text()
+        if len(data.strip()) != 0:
+            await websocket.send_text(f"Message text was: {data}")
+            result = await chat.sendMessage(data)
+            await websocket.send_text(f"Response was: {result}")
