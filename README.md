@@ -16,7 +16,7 @@ Install [uv](https://github.com/astral-sh/uv)
 
 ```{bash}
 uv sync --locked
-uv run client.py
+uv run fastapi dev client.py
 ```
 
 ### With docker
@@ -25,7 +25,7 @@ Install [docker](https://www.docker.com/)
 
 ```{bash}
 docker build -t finis_ai .
-docker run -it finis_ai
+docker run -p 8000:80 finis_ai
 ```
 
 ## Function calling overview
