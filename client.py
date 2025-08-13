@@ -1,11 +1,16 @@
+import json
 import logging
 import os
+from datetime import datetime
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from google import genai
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+
+load_dotenv()
 
 app = FastAPI()
 
@@ -87,13 +92,53 @@ async def get():
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+    chat = ChatService()
     try:
-        chat = ChatService()
         while True:
             data = await websocket.receive_text()
-            if len(data.strip()) != 0:
-                await websocket.send_text(f"Message text was: {data}")
-                result = await chat.sendMessage(data)
-                await websocket.send_text(f"Response was: {result}")
+
+            try:
+                # Try to parse as JSON
+                message_data = json.loads(data)
+
+                # Handle different message types
+                if message_data.get("type") == "message":
+                    # Prepare message for broadcasting
+                    broadcast_message = {
+                        "type": "message",
+                        "message": message_data.get("message", ""),
+                        "sender": "Agent",
+                        "timestamp": message_data.get(
+                            "timestamp", datetime.now().isoformat()
+                        ),
+                        "isOwn": False,  # Recipients see it as not their own
+                    }
+
+                    if len(broadcast_message["message"]) != 0:
+                        result = await chat.sendMessage(broadcast_message["message"])
+                        broadcast_message["message"] = result
+
+                    await websocket.send_text(json.dumps(broadcast_message))
+
+                elif message_data.get("type") == "ping":
+                    # Handle ping/keepalive
+                    pong_message = {
+                        "type": "pong",
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                    await websocket.send_text(json.dumps(pong_message))
+
+            except json.JSONDecodeError:
+                # Handle plain text messages
+                broadcast_message = {
+                    "type": "message",
+                    "message": data,
+                    "sender": "Unknown",
+                    "timestamp": datetime.now().isoformat(),
+                    "isOwn": False,
+                }
+
+                await websocket.send_text(json.dumps(broadcast_message))
+
     except WebSocketDisconnect:
         logging.info("Client disconnect")
