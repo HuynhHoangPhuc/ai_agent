@@ -4,15 +4,27 @@ import os
 from datetime import datetime
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from google import genai
+from google.genai import types
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 load_dotenv()
 
 app = FastAPI()
+
+origins = ["http://localhost:3000"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 html = """
 <!DOCTYPE html>
@@ -48,6 +60,8 @@ html = """
 </html>
 """
 
+files_uploaded = []
+
 
 class ChatService:
     def __init__(self, model="gemini-2.5-flash") -> None:
@@ -61,13 +75,15 @@ class ChatService:
         )
 
     async def sendMessage(self, message: str) -> str:
+        prompt = files_uploaded + [message]
+
         result = ""
         async with stdio_client(self.server_params) as (read, write):
             async with ClientSession(read, write) as session:
                 await session.initialize()
                 try:
                     response = await self.chat.send_message_stream(
-                        message,
+                        prompt,
                         config=genai.types.GenerateContentConfig(
                             temperature=0,
                             tools=[session],
@@ -87,6 +103,18 @@ class ChatService:
 @app.get("/")
 async def get():
     return HTMLResponse(html)
+
+
+@app.post("/upload-files/")
+async def upload_file(files: list[UploadFile]):
+    for file in files:
+        files_uploaded.append(
+            types.Part.from_bytes(
+                data=(await file.read()),
+                mime_type=file.content_type,
+            )
+        )
+    return {"filename": [file.filename for file in files]}
 
 
 @app.websocket("/ws")
