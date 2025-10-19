@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { Send, Users, Circle, File } from "lucide-react";
+import Markdown from "react-markdown";
 
 export const Route = createFileRoute("/chat")({
   component: ChatPage,
@@ -340,7 +341,9 @@ function ChatPage(): JSX.Element {
                           {msg.sender}
                         </p>
                       )}
-                      <p className="text-sm">{msg.text}</p>
+                      <div className="text-sm">
+                        <Markdown>{msg.text}</Markdown>
+                      </div>
                       <p
                         className={`text-xs mt-1 ${
                           msg.isOwn ? "text-blue-100" : "text-gray-500"
