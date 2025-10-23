@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { Send, Users, Circle, File } from "lucide-react";
 import Markdown from "react-markdown";
 
-export const Route = createFileRoute("/chat")({
+export const Route = createFileRoute("/chatn8n")({
   component: ChatPage,
 });
 
@@ -170,7 +170,7 @@ function ChatPage(): JSX.Element {
 
   // Replace with your FastAPI WebSocket URL
   const { messages, connectionStatus, onlineUsers, sendMessage } = useWebSocket(
-    "ws://localhost:8000/ws",
+    "ws://localhost:8000/n8n",
   );
 
   // Auto-scroll to bottom when new messages arrive
@@ -289,9 +289,7 @@ function ChatPage(): JSX.Element {
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">
-              Car Value AI Agent
-            </h1>
+            <h1 className="text-2xl font-bold text-gray-900">Chat with N8N</h1>
             <div className="flex items-center space-x-4">
               {/* <div className="flex items-center space-x-2 text-sm text-gray-600"> */}
               {/* 	<Users size={16} /> */}
