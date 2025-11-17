@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { Send, Users, Circle, File } from "lucide-react";
 import Markdown from "react-markdown";
+import logo from "@/logo.jpg";
 
 export const Route = createFileRoute("/chatn8n")({
   component: ChatPage,
@@ -289,7 +290,10 @@ function ChatPage(): JSX.Element {
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">Chat with N8N</h1>
+            <h1 className="text-2xl font-bold text-gray-900 flex gap-x-2 justify-center align-middle">
+                <img src={logo} className="size-10 pointer-events-none" alt="logo"/>
+                <p>Chat with N8N</p>
+            </h1>
             <div className="flex items-center space-x-4">
               {/* <div className="flex items-center space-x-2 text-sm text-gray-600"> */}
               {/* 	<Users size={16} /> */}

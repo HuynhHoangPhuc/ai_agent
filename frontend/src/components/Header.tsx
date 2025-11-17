@@ -8,20 +8,20 @@ export default function Header() {
           <Link to="/">Home</Link>
         </div>
 
-        <div className="px-2 font-bold">
-          <Link to="/demo/store">Store</Link>
-        </div>
+        {/*<div className="px-2 font-bold">*/}
+        {/*  <Link to="/demo/store">Store</Link>*/}
+        {/*</div>*/}
 
-        <div className="px-2 font-bold">
-          <Link to="/demo/tanstack-query">TanStack Query</Link>
-        </div>
+        {/*<div className="px-2 font-bold">*/}
+        {/*  <Link to="/demo/tanstack-query">TanStack Query</Link>*/}
+        {/*</div>*/}
 
         <div className="px-2 font-bold">
           <Link to="/chat">Chat with AI</Link>
         </div>
 
         <div className="px-2 font-bold">
-          <Link to="/chat">Chat with N8N</Link>
+          <Link to="/chatn8n">Chat with N8N</Link>
         </div>
       </nav>
     </header>
