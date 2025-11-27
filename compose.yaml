@@ -4,8 +4,8 @@ services:
     restart: always
     container_name: qdrant
     ports:
-      - 6333:6333
-      - 6334:6334
+      - "6333:6333"
+      - "6334:6334"
     expose:
       - 6333
       - 6334
@@ -15,6 +15,17 @@ services:
         target: /qdrant/config/production.yaml
     volumes:
       - ./qdrant_data:/qdrant/storage
+
+  backend:
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - VECTORDB_URL=${VECTORDB_URL}
+      - FRONTEND_URL=${FRONTEND_URL}
+    build: .
+    ports:
+      - "8000:80"
+    depends_on:
+      - vectordb
 
 configs:
   qdrant_config:

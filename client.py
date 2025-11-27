@@ -22,7 +22,7 @@ load_dotenv()
 
 app = FastAPI()
 
-origins = ["http://localhost:3000"]
+origins = [os.getenv("FRONTEND_URL")]
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,40 +31,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-html = """
-<!DOCTYPE html>
-<html>
-    <head>
-        <title>Chat</title>
-    </head>
-    <body>
-        <h1>WebSocket Chat</h1>
-        <form action="" onsubmit="sendMessage(event)">
-            <input type="text" id="messageText" autocomplete="off"/>
-            <button>Send</button>
-        </form>
-        <ul id='messages'>
-        </ul>
-        <script>
-            var ws = new WebSocket("ws://localhost:8000/ws");
-            ws.onmessage = function(event) {
-                var messages = document.getElementById('messages')
-                var message = document.createElement('li')
-                var content = document.createTextNode(event.data)
-                message.appendChild(content)
-                messages.appendChild(message)
-            };
-            function sendMessage(event) {
-                var input = document.getElementById("messageText")
-                ws.send(input.value)
-                input.value = ''
-                event.preventDefault()
-            }
-        </script>
-    </body>
-</html>
-"""
 
 files_uploaded = []
 
@@ -83,32 +49,49 @@ class ChatService:
     async def sendMessage(self, message: str) -> str:
 
         result = ""
-        async with stdio_client(self.server_params) as (read, write):
-            async with ClientSession(read, write) as session:
-                await session.initialize()
-                try:
-                    response = await self.chat.send_message_stream(
-                        [message],
-                        config=genai.types.GenerateContentConfig(
-                            temperature=0,
-                            tools=[session],
-                        ),
-                    )
+        # async with stdio_client(self.server_params) as (read, write):
+        #     async with ClientSession(read, write) as session:
+        #         await session.initialize()
+        #         try:
+        #             response = await self.chat.send_message_stream(
+        #                 [message],
+        #                 config=genai.types.GenerateContentConfig(
+        #                     temperature=0,
+        #                     tools=[session],
+        #                 ),
+        #             )
+        #
+        #             async for chunk in response:
+        #                 for candidate in chunk.candidates:
+        #                     for part in candidate.content.parts:
+        #                         if part.text:
+        #                             result += part.text
+        #         except Exception as e:
+        #             logging.error(f"Error during chat: {str(e)}")
 
-                    async for chunk in response:
-                        for candidate in chunk.candidates:
-                            for part in candidate.content.parts:
-                                if part.text:
-                                    result += part.text
-                except Exception as e:
-                    logging.error(f"Error during chat: {str(e)}")
+        try:
+            response = await self.chat.send_message_stream(
+                [message],
+                config=genai.types.GenerateContentConfig(
+                    temperature=0,
+                    # tools=[session],
+                ),
+            )
+
+            async for chunk in response:
+                for candidate in chunk.candidates:
+                    for part in candidate.content.parts:
+                        if part.text:
+                            result += part.text
+        except Exception as e:
+            logging.error(f"Error during chat: {str(e)}")
         return result
 
 
 class VectorDatabaseService:
     def __init__(self, model="gemini-2.5-flash", chunking_prompt: str | None = None) -> None:
         # Setup Qdrant
-        self.qdrant_client = QdrantClient(url="http://localhost:6333")
+        self.qdrant_client = QdrantClient(url=os.getenv("VECTORDB_URL"))
 
         # Create Qdrant collection
         self.collection_name = "test"
@@ -305,7 +288,8 @@ async def websocket_endpoint(websocket: WebSocket):
                     }
 
                     if len(broadcast_message["message"]) != 0:
-                        result = await chat.sendMessage(VecDBService.query(broadcast_message["message"]))
+                        query = VecDBService.query(broadcast_message["message"])
+                        result = await chat.sendMessage(query)
                         broadcast_message["message"] = result
 
                     await websocket.send_text(json.dumps(broadcast_message))
