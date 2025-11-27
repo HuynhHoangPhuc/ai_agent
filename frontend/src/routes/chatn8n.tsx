@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect, useRef } from "react";
-import { Send, Users, Circle, File } from "lucide-react";
+import {useState, useEffect, useRef, type JSX} from "react";
+import { Send, Circle, File } from "lucide-react";
 import Markdown from "react-markdown";
 import logo from "@/logo.jpg";
 
@@ -170,7 +170,7 @@ function ChatPage(): JSX.Element {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Replace with your FastAPI WebSocket URL
-  const { messages, connectionStatus, onlineUsers, sendMessage } = useWebSocket(
+  const { messages, connectionStatus, sendMessage } = useWebSocket(
     "ws://localhost:8000/n8n",
   );
 
@@ -407,6 +407,7 @@ function UploadFile() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       // setStatus("initial");
+      // @ts-ignore
       setFiles(e.target.files);
       // POST to /upload-files with fetch
       const formData = new FormData();
@@ -449,12 +450,12 @@ function UploadFile() {
             onChange={handleFileChange}
           />
           {files &&
-            [...files].map((file, _) => (
+            [...files].map(({name}, _) => (
               <section
-                key={file.name}
+                key={name}
                 className="flex items-center align-middle gap-x-2 p-3 my-3 border border-gray-200 rounded-full shadow-sm line-clamp-1"
               >
-                <File /> {file.name}
+                <File /> {name}
               </section>
             ))}
         </div>
